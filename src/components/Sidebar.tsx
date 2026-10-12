@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import type { ScenarioActions } from "../hooks/useScenario.ts"
+import { previewWidthLimits, type ScenarioActions } from "../hooks/useScenario.ts"
 import type { ComponentId, Scenario, UIState, Viewport } from "../types.ts"
 
 const componentOptions: readonly { id: ComponentId; label: string }[] = [
@@ -78,8 +78,8 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           Width
           <input
             type="number"
-            min={240}
-            max={1600}
+            min={previewWidthLimits.min}
+            max={previewWidthLimits.max}
             value={scenario.width}
             onChange={(event) => {
               const nextWidth = event.currentTarget.valueAsNumber

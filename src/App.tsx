@@ -60,7 +60,7 @@ export default function App() {
           <Sidebar scenario={scenario} actions={actions} />
         </aside>
 
-        <Preview scenario={scenario} />
+        <Preview scenario={scenario} actions={actions} />
       </div>
     </div>
   )

@@ -1,14 +1,26 @@
 import { useState } from "react"
 import type { ComponentId, Scenario, UIState, Viewport } from "../types.ts"
 
-const MIN_WIDTH = 240
-const MAX_WIDTH = 1600
+export const previewWidthLimits = {
+  min: 320,
+  max: 1440,
+} as const
 
 const presetWidths = {
-  mobile: 390,
+  mobile: 375,
   tablet: 768,
   desktop: 1280,
 } as const satisfies Record<Exclude<Viewport, "custom">, number>
+
+export const viewportPresets: readonly {
+  id: Exclude<Viewport, "custom">
+  label: string
+  width: number
+}[] = [
+  { id: "mobile", label: "Mobile", width: presetWidths.mobile },
+  { id: "tablet", label: "Tablet", width: presetWidths.tablet },
+  { id: "desktop", label: "Desktop", width: presetWidths.desktop },
+]
 
 export function createDefaultScenario(): Scenario {
   return {
@@ -54,7 +66,10 @@ export function useScenario(): { scenario: Scenario; actions: ScenarioActions } 
     },
     setCustomWidth(width) {
       if (!Number.isFinite(width)) return
-      const nextWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(width)))
+      const nextWidth = Math.min(
+        previewWidthLimits.max,
+        Math.max(previewWidthLimits.min, Math.round(width)),
+      )
       setScenario((current) => ({
         ...current,
         viewport: "custom",
