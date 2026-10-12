@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react"
+import { Preview } from "./components/Preview.tsx"
 import { Sidebar } from "./components/Sidebar.tsx"
+import { useScenario } from "./hooks/useScenario.ts"
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { scenario, actions } = useScenario()
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -54,21 +57,10 @@ export default function App() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <Sidebar />
+          <Sidebar scenario={scenario} actions={actions} />
         </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-zinc-950">
-          <div className="flex h-9 shrink-0 items-center border-b border-zinc-800 px-4">
-            <span className="font-mono text-[11px] tracking-[0.16em] text-zinc-500 uppercase">
-              Preview
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
-            <div className="flex h-full min-h-48 items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/40 px-4">
-              <p className="text-center text-sm text-zinc-500">Preview canvas</p>
-            </div>
-          </div>
-        </main>
+        <Preview scenario={scenario} actions={actions} />
       </div>
     </div>
   )
