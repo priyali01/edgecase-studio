@@ -1,48 +1,99 @@
+import { useEffect, useState } from "react"
+import { Sidebar } from "./components/Sidebar.tsx"
+
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSidebarOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
   return (
-    <div className="flex min-h-svh flex-col border-t-2 border-indigo-500 bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-950">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="grid size-8 shrink-0 place-items-center rounded-md bg-indigo-500 text-xs font-semibold tracking-tight text-white shadow-[0_0_0_1px_rgba(99,102,241,0.45)]"
-            >
-              EC
-            </span>
-            <span className="truncate text-sm font-medium text-zinc-200">
-              EdgeCase Studio
-            </span>
-          </div>
-          <span className="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-indigo-300">
-            Dev
+    <div className="flex h-svh flex-col overflow-hidden border-t-2 border-indigo-500 bg-zinc-950 text-zinc-100">
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-3">
+        <button
+          type="button"
+          className="grid size-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-300 hover:border-indigo-400/40 hover:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 md:hidden"
+          aria-expanded={sidebarOpen}
+          aria-controls="studio-sidebar"
+          onClick={() => setSidebarOpen((open) => !open)}
+        >
+          <MenuIcon open={sidebarOpen} />
+          <span className="sr-only">
+            {sidebarOpen ? "Close sidebar" : "Open sidebar"}
           </span>
+        </button>
+        <div className="flex min-w-0 flex-1 items-baseline gap-3">
+          <h1 className="shrink-0 text-sm font-semibold tracking-tight text-zinc-50">
+            EdgeCase Studio
+          </h1>
+          <p className="truncate text-sm text-zinc-400">See how your UI breaks.</p>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-12">
-        <section className="flex flex-1 flex-col justify-center rounded-xl border border-zinc-800 bg-zinc-900/70 px-6 py-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-10 sm:py-16">
-          <p className="font-mono text-xs uppercase tracking-[0.22em] text-indigo-400">
-            UI playground
-          </p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            EdgeCase Studio
-          </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-zinc-400 sm:text-xl">
-            See how your UI breaks.
-          </p>
-        </section>
-      </main>
+      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-20 bg-zinc-950/70 md:hidden"
+            aria-label="Close sidebar"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
 
-      <footer className="border-t border-zinc-800">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5 font-mono text-xs text-zinc-500 sm:px-6">
-          <span className="inline-flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
-            Ready
-          </span>
-          <span>shell</span>
-        </div>
-      </footer>
+        <aside
+          id="studio-sidebar"
+          className={`absolute inset-y-0 left-0 z-30 w-[280px] max-w-full border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 md:static md:shrink-0 md:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <Sidebar />
+        </aside>
+
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-zinc-950">
+          <div className="flex h-9 shrink-0 items-center border-b border-zinc-800 px-4">
+            <span className="font-mono text-[11px] tracking-[0.16em] text-zinc-500 uppercase">
+              Preview
+            </span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
+            <div className="flex h-full min-h-48 items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/40 px-4">
+              <p className="text-center text-sm text-zinc-500">Preview canvas</p>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
+  )
+}
+
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true">
+      {open ? (
+        <path
+          d="M5 5l10 10M15 5L5 15"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      ) : (
+        <path
+          d="M3.5 5.5h13M3.5 10h13M3.5 14.5h13"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
   )
 }
