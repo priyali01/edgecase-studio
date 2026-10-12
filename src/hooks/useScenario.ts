@@ -34,6 +34,9 @@ export function createDefaultScenario(): Scenario {
       enabled: false,
       stateB: "empty",
     },
+    matrix: {
+      enabled: false,
+    },
   }
 }
 
@@ -43,7 +46,9 @@ export type ScenarioActions = {
   selectViewport: (viewport: Viewport) => void
   setCustomWidth: (width: number) => void
   toggleCompare: () => void
+  setCompareEnabled: (enabled: boolean) => void
   setCompareState: (stateB: UIState) => void
+  setMatrixEnabled: (enabled: boolean) => void
   reset: () => void
 }
 
@@ -80,12 +85,33 @@ export function useScenario(): { scenario: Scenario; actions: ScenarioActions } 
       setScenario((current) => ({
         ...current,
         compare: { ...current.compare, enabled: !current.compare.enabled },
+        matrix: {
+          ...current.matrix,
+          enabled: current.compare.enabled ? current.matrix.enabled : false,
+        },
+      }))
+    },
+    setCompareEnabled(enabled) {
+      setScenario((current) => ({
+        ...current,
+        compare: { ...current.compare, enabled },
+        matrix: { ...current.matrix, enabled: enabled ? false : current.matrix.enabled },
       }))
     },
     setCompareState(stateB) {
       setScenario((current) => ({
         ...current,
         compare: { ...current.compare, stateB },
+      }))
+    },
+    setMatrixEnabled(enabled) {
+      setScenario((current) => ({
+        ...current,
+        matrix: { ...current.matrix, enabled },
+        compare: {
+          ...current.compare,
+          enabled: enabled ? false : current.compare.enabled,
+        },
       }))
     },
     reset() {

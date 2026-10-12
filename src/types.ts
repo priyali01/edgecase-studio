@@ -9,6 +9,10 @@ export type CompareConfig = {
   stateB: UIState
 }
 
+export type MatrixConfig = {
+  enabled: boolean
+}
+
 export type Scenario = {
   id: string
   name: string
@@ -17,4 +21,5 @@ export type Scenario = {
   viewport: Viewport
   width: number
   compare: CompareConfig
+  matrix: MatrixConfig
 }

@@ -51,9 +51,18 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
             type="checkbox"
             className="size-3.5 accent-indigo-500"
             checked={scenario.compare.enabled}
-            onChange={actions.toggleCompare}
+            onChange={(event) => actions.setCompareEnabled(event.currentTarget.checked)}
           />
           Compare
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-sm text-zinc-200">
+          <input
+            type="checkbox"
+            className="size-3.5 accent-indigo-500"
+            checked={scenario.matrix.enabled}
+            onChange={(event) => actions.setMatrixEnabled(event.currentTarget.checked)}
+          />
+          Matrix
         </label>
         <div className="mt-3">
           <p className="mb-1.5 text-xs text-zinc-500">Comparison state</p>
@@ -62,7 +71,6 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
             options={stateOptions}
             value={scenario.compare.stateB}
             onChange={actions.setCompareState}
-            disabled={!scenario.compare.enabled}
           />
         </div>
       </SidebarSection>
