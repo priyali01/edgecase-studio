@@ -2,10 +2,27 @@ import { useEffect, useState } from "react"
 import { Preview } from "./components/Preview.tsx"
 import { Sidebar } from "./components/Sidebar.tsx"
 import { useScenario } from "./hooks/useScenario.ts"
+import { useStudioShortcuts } from "./hooks/useStudioShortcuts.ts"
+
+function useNarrowLayout() {
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 767px)").matches)
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const update = () => setNarrow(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
+
+  return narrow
+}
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const narrow = useNarrowLayout()
   const { scenario, actions } = useScenario()
+  useStudioShortcuts(scenario, actions)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -53,6 +70,8 @@ export default function App() {
 
         <aside
           id="studio-sidebar"
+          aria-label="Studio sidebar"
+          inert={narrow && !sidebarOpen}
           className={`absolute inset-y-0 left-0 z-30 w-[280px] max-w-full border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 md:static md:shrink-0 md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
