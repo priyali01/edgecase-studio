@@ -141,7 +141,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
             value={scenario.width}
             onChange={(event) => onWidthInput(event.currentTarget.valueAsNumber)}
             aria-describedby={widthNotice ? "width-notice" : undefined}
-            className="mt-1.5 w-full rounded-md border border-zinc-700 bg-black/40 px-2.5 py-1.5 font-mono text-[13px] text-zinc-100 transition-colors duration-150 focus:border-indigo-400/80 motion-reduce:transition-none"
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-mono text-[13px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 focus:border-white/25 motion-reduce:transition-none"
           />
         </label>
         {widthNotice ? (
@@ -252,7 +252,7 @@ function ChoiceGroup<T extends string>({
             onClick={() => onChange(option.id)}
             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-[13px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${
               selected
-                ? "border-indigo-400/50 bg-indigo-500/10 font-medium text-zinc-50"
+                ? "border-white/15 bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
                 : "border-transparent text-zinc-300 hover:border-white/10 hover:bg-white/[0.04]"
             }`}
           >
@@ -495,7 +495,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
               onSave()
             }
           }}
-          className="mt-1.5 w-full rounded-md border border-zinc-700 bg-black/40 px-2.5 py-1.5 text-[13px] text-zinc-100 transition-colors duration-150 focus:border-indigo-400/80 motion-reduce:transition-none"
+          className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 focus:border-white/25 motion-reduce:transition-none"
         />
       </label>
       <button
@@ -551,7 +551,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
               <li
                 key={entry.id}
                 data-saved-scenario={entry.id}
-                className="rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-2 transition-colors duration-150 hover:border-white/15 motion-reduce:transition-none"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-white/20 motion-reduce:transition-none"
               >
                 <p className="truncate text-sm text-zinc-100" title={entry.name}>
                   {entry.name}

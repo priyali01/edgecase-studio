@@ -51,8 +51,9 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex h-svh flex-col overflow-hidden bg-[#09090b] text-zinc-100">
-      <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-white/10 bg-[#0c0c0e] px-3">
+    <div className="studio-backdrop h-svh p-2 text-zinc-100 sm:p-3">
+    <div className="glass-window flex h-full min-h-0 flex-col overflow-hidden rounded-[22px]">
+      <header className="glass-bar flex h-10 shrink-0 items-center gap-2.5 border-b border-white/10 px-3">
         <button
           type="button"
           className="grid size-7 shrink-0 place-items-center rounded-md border border-white/10 text-zinc-300 transition-colors duration-150 hover:border-white/20 hover:bg-white/[0.04] hover:text-zinc-100 motion-reduce:transition-none md:hidden"
@@ -81,7 +82,7 @@ export default function App() {
         {sidebarOpen ? (
           <button
             type="button"
-            className="studio-fade absolute inset-0 z-20 bg-black/60 md:hidden"
+            className="studio-fade absolute inset-0 z-20 bg-black/35 backdrop-blur-sm md:hidden"
             aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
           />
@@ -91,7 +92,7 @@ export default function App() {
           id="studio-sidebar"
           aria-label="Studio sidebar"
           inert={narrow && !sidebarOpen}
-          className={`absolute inset-y-0 left-0 z-30 w-64 max-w-full border-r border-white/10 bg-[#0c0c0e] transition-transform duration-200 ease-out motion-reduce:transition-none md:static md:shrink-0 md:translate-x-0 ${
+          className={`glass-bar absolute inset-y-0 left-0 z-30 w-64 max-w-full border-r border-white/10 transition-transform duration-200 ease-out motion-reduce:transition-none md:static md:shrink-0 md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -100,6 +101,7 @@ export default function App() {
 
         <Preview scenario={scenario} actions={actions} />
       </div>
+    </div>
     </div>
   )
 }

@@ -55,10 +55,10 @@ export function Preview({ scenario, actions }: PreviewProps) {
   }
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#09090b]">
-      <div className="shrink-0 border-b border-white/10 bg-[#0c0c0e]">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="glass-bar shrink-0 border-b border-white/10">
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 px-2.5 py-1.5">
-        <div className="flex rounded-md border border-white/10 bg-black/30 p-0.5" role="group" aria-label="View mode">
+        <div className="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" role="group" aria-label="View mode">
           <ModeButton
             pressed={scenario.compare.enabled}
             onClick={() => actions.toggleCompare()}
@@ -72,7 +72,7 @@ export function Preview({ scenario, actions }: PreviewProps) {
             Matrix
           </ModeButton>
         </div>
-        <div className="flex rounded-md border border-white/10 bg-black/30 p-0.5" role="group" aria-label="Viewport presets">
+        <div className="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" role="group" aria-label="Viewport presets">
           {viewportPresets.map((preset) => {
             const selected = scenario.viewport === preset.id
             return (
@@ -83,7 +83,7 @@ export function Preview({ scenario, actions }: PreviewProps) {
                 onClick={() => actions.selectViewport(preset.id)}
                 className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] transition-colors duration-150 motion-reduce:transition-none ${
                   selected
-                    ? "bg-white/10 font-medium text-zinc-50"
+                    ? "bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
                     : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
                 }`}
               >
@@ -229,7 +229,7 @@ function ModeButton({
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] transition-colors duration-150 motion-reduce:transition-none ${
         pressed
-          ? "bg-white/10 font-medium text-zinc-50"
+          ? "bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
           : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
       }`}
     >
@@ -265,7 +265,7 @@ function PreviewFrame({
             const nextState = event.currentTarget.value
             if (isUIState(nextState)) onStateChange(nextState)
           }}
-          className="max-w-[65%] shrink-0 rounded-md border border-zinc-700 bg-[#0c0c0e] px-2 py-1 text-[12px] text-zinc-100 transition-colors duration-150 hover:border-zinc-500 motion-reduce:transition-none"
+          className="max-w-[65%] shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[12px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-white/20 motion-reduce:transition-none"
         >
           {stateChoices.map((choice) => (
             <option key={choice.id} value={choice.id}>
@@ -295,7 +295,7 @@ function PreviewSurface({
       data-preview-frame
       data-preview-label={label}
       style={{ width }}
-      className="overflow-hidden rounded-lg border border-white/10 bg-[#0c0c0e] p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28)] transition-colors duration-150 group-hover:border-white/20 motion-reduce:transition-none"
+      className="glass-panel overflow-hidden rounded-[20px] p-1.5 transition-[border-color,box-shadow] duration-150 group-hover:border-white/20 motion-reduce:transition-none"
     >
       <div
         data-preview-content
@@ -316,7 +316,7 @@ function LayoutReport({ frames }: { frames: readonly LayoutFrameReport[] }) {
       aria-live="polite"
       aria-atomic="true"
       data-layout-report
-      className="border-t border-white/10 px-3 py-2"
+      className="glass-bar border-t border-white/10 px-3 py-2"
     >
       <p className="text-[11px] text-zinc-400">
         Measured from the current preview. This is not a full visual check.
