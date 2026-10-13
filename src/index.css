@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
 }
 
@@ -18,16 +18,53 @@ body,
 body {
   margin: 0;
   overflow: hidden;
-  background-color: var(--color-zinc-950);
-  color: var(--color-zinc-100);
+  background-color: #09090b;
+  color: #ececef;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 :focus-visible {
-  outline: 2px solid #c7d2fe;
+  outline: 2px solid #a5b4fc;
   outline-offset: 2px;
 }
 
 [data-preview-content]:focus-visible,
 [data-preview-scroll]:focus-visible {
   outline-offset: -2px;
+}
+
+[data-preview-scroll] {
+  background-color: #070708;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.studio-fade {
+  animation: studio-in 160ms ease-out;
+}
+
+[data-layout-report] {
+  animation: studio-in 160ms ease-out;
+}
+
+@keyframes studio-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-layout-report],
+  .studio-fade {
+    animation: none;
+  }
 }

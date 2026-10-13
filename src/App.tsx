@@ -3,6 +3,21 @@ import { Preview } from "./components/Preview.tsx"
 import { Sidebar } from "./components/Sidebar.tsx"
 import { useScenario } from "./hooks/useScenario.ts"
 import { useStudioShortcuts } from "./hooks/useStudioShortcuts.ts"
+import type { Scenario, UIState } from "./types.ts"
+
+const stateLabels: Record<UIState, string> = {
+  success: "Success",
+  loading: "Loading",
+  empty: "Empty",
+  error: "Error",
+  long: "Long",
+}
+
+function studioStatus(scenario: Scenario): string {
+  const component = scenario.component === "profile" ? "Profile" : "Products"
+  const mode = scenario.matrix.enabled ? "Matrix" : scenario.compare.enabled ? "Compare" : null
+  return [component, stateLabels[scenario.state], `${scenario.width}px`, mode].filter(Boolean).join(" · ")
+}
 
 function useNarrowLayout() {
   const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 767px)").matches)
@@ -36,11 +51,11 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex h-svh flex-col overflow-hidden border-t-2 border-indigo-500 bg-zinc-950 text-zinc-100">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-3">
+    <div className="flex h-svh flex-col overflow-hidden bg-[#09090b] text-zinc-100">
+      <header className="flex h-10 shrink-0 items-center gap-2.5 border-b border-white/10 bg-[#0c0c0e] px-3">
         <button
           type="button"
-          className="grid size-8 shrink-0 place-items-center rounded-md border border-zinc-800 text-zinc-300 hover:border-indigo-400/40 hover:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 md:hidden"
+          className="grid size-7 shrink-0 place-items-center rounded-md border border-white/10 text-zinc-300 transition-colors duration-150 hover:border-white/20 hover:bg-white/[0.04] hover:text-zinc-100 motion-reduce:transition-none md:hidden"
           aria-expanded={sidebarOpen}
           aria-controls="studio-sidebar"
           onClick={() => setSidebarOpen((open) => !open)}
@@ -50,19 +65,23 @@ export default function App() {
             {sidebarOpen ? "Close sidebar" : "Open sidebar"}
           </span>
         </button>
-        <div className="flex min-w-0 flex-1 items-baseline gap-3">
-          <h1 className="shrink-0 text-sm font-semibold tracking-tight text-zinc-50">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-indigo-400" />
+          <h1 className="shrink-0 text-[13px] font-medium tracking-tight text-zinc-50">
             EdgeCase Studio
           </h1>
-          <p className="truncate text-sm text-zinc-400">See how your UI breaks.</p>
+          <p className="hidden truncate text-[13px] text-zinc-500 sm:block">See how your UI breaks.</p>
         </div>
+        <p className="hidden max-w-[46%] truncate font-mono text-[11px] text-zinc-500 md:block">
+          {studioStatus(scenario)}
+        </p>
       </header>
 
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {sidebarOpen ? (
           <button
             type="button"
-            className="absolute inset-0 z-20 bg-zinc-950/70 md:hidden"
+            className="studio-fade absolute inset-0 z-20 bg-black/60 md:hidden"
             aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
           />
@@ -72,7 +91,7 @@ export default function App() {
           id="studio-sidebar"
           aria-label="Studio sidebar"
           inert={narrow && !sidebarOpen}
-          className={`absolute inset-y-0 left-0 z-30 w-[280px] max-w-full border-r border-zinc-800 bg-zinc-950 transition-transform duration-200 md:static md:shrink-0 md:translate-x-0 ${
+          className={`absolute inset-y-0 left-0 z-30 w-64 max-w-full border-r border-white/10 bg-[#0c0c0e] transition-transform duration-200 ease-out motion-reduce:transition-none md:static md:shrink-0 md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
