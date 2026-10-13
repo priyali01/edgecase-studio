@@ -49,6 +49,8 @@ export type ScenarioActions = {
   setCompareEnabled: (enabled: boolean) => void
   setCompareState: (stateB: UIState) => void
   setMatrixEnabled: (enabled: boolean) => void
+  setName: (name: string) => void
+  loadScenario: (saved: Omit<Scenario, "matrix">) => void
   reset: () => void
 }
 
@@ -113,6 +115,24 @@ export function useScenario(): { scenario: Scenario; actions: ScenarioActions } 
           enabled: enabled ? false : current.compare.enabled,
         },
       }))
+    },
+    setName(name) {
+      setScenario((current) => ({ ...current, name: name.slice(0, 80) }))
+    },
+    loadScenario(saved) {
+      setScenario({
+        id: saved.id,
+        name: saved.name,
+        component: saved.component,
+        state: saved.state,
+        viewport: saved.viewport,
+        width: saved.width,
+        compare: {
+          enabled: saved.compare.enabled,
+          stateB: saved.compare.stateB,
+        },
+        matrix: { enabled: false },
+      })
     },
     reset() {
       setScenario(createDefaultScenario())
