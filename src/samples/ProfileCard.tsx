@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import type { UIState } from "../types.ts"
+import { isUIState } from "../utils/guards.ts"
 
 type ProfileCardProps = {
   state: UIState
@@ -56,6 +57,7 @@ const longTags = [
 ] as const
 
 export function ProfileCard({ state }: ProfileCardProps) {
+  if (!isUIState(state)) return <UnavailablePreview />
   switch (state) {
     case "success":
       return (
@@ -86,9 +88,18 @@ export function ProfileCard({ state }: ProfileCardProps) {
       )
     default: {
       const unexpected: never = state
-      throw new Error(`Unexpected profile state: ${unexpected}`)
+      return <UnavailablePreview state={unexpected} />
     }
   }
+}
+
+function UnavailablePreview({ state }: { state?: never }) {
+  void state
+  return (
+    <p role="alert" className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-sm text-rose-300">
+      This preview isn't available.
+    </p>
+  )
 }
 
 function ProfileLayout({
@@ -121,7 +132,7 @@ function ProfileLayout({
             key={stat.label}
             className="rounded-md border border-zinc-800 bg-zinc-950/70 px-3 py-2"
           >
-            <dt className="text-xs text-zinc-500">{stat.label}</dt>
+            <dt className="text-xs text-zinc-400">{stat.label}</dt>
             <dd className="mt-1 text-sm font-semibold text-zinc-100">{stat.value}</dd>
           </div>
         ))}

@@ -38,14 +38,14 @@ export function useStudioShortcuts(scenario: Scenario, actions: ScenarioActions)
       if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return
       if (isTypingTarget(event.target)) return
 
-      const { scenario: current, actions: currentActions } = latest.current
+      const { actions: currentActions } = latest.current
       const state = stateByKey[event.key]
       if (state) {
         currentActions.setState(state)
       } else if (event.key === "c" || event.key === "C") {
         currentActions.toggleCompare()
       } else if (event.key === "m" || event.key === "M") {
-        currentActions.setMatrixEnabled(!current.matrix.enabled)
+        currentActions.toggleMatrix()
       } else {
         return
       }

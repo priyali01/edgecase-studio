@@ -1,9 +1,11 @@
 import { useRef, useState, type ReactNode } from "react"
+import { SelectionMark } from "./SelectionMark.tsx"
 import {
   previewWidthLimits,
   viewportPresets,
   type ScenarioActions,
 } from "../hooks/useScenario.ts"
+import { isComponentId, isUIState } from "../utils/guards.ts"
 import { ProductList } from "../samples/ProductList.tsx"
 import { ProfileCard } from "../samples/ProfileCard.tsx"
 import type { ComponentId, Scenario, UIState } from "../types.ts"
@@ -59,13 +61,13 @@ export function Preview({ scenario, actions }: PreviewProps) {
         <div className="flex flex-wrap gap-1" role="group" aria-label="View mode">
           <ModeButton
             pressed={scenario.compare.enabled}
-            onClick={() => actions.setCompareEnabled(!scenario.compare.enabled)}
+            onClick={() => actions.toggleCompare()}
           >
             Compare
           </ModeButton>
           <ModeButton
             pressed={scenario.matrix.enabled}
-            onClick={() => actions.setMatrixEnabled(!scenario.matrix.enabled)}
+            onClick={() => actions.toggleMatrix()}
           >
             Matrix
           </ModeButton>
@@ -79,12 +81,13 @@ export function Preview({ scenario, actions }: PreviewProps) {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => actions.selectViewport(preset.id)}
-                className={`rounded-md border px-2.5 py-1 text-xs ${
+                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs ${
                   selected
-                    ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-100"
+                    ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
                     : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700"
                 }`}
               >
+                <SelectionMark selected={selected} />
                 {preset.label}
               </button>
             )
@@ -97,6 +100,7 @@ export function Preview({ scenario, actions }: PreviewProps) {
             min={previewWidthLimits.min}
             max={previewWidthLimits.max}
             value={scenario.width}
+            aria-valuetext={`${scenario.width} pixels`}
             onChange={(event) => {
               actions.setCustomWidth(event.currentTarget.valueAsNumber)
             }}
@@ -117,7 +121,13 @@ export function Preview({ scenario, actions }: PreviewProps) {
       {layoutReport ? <LayoutReport frames={layoutReport} /> : null}
       </div>
 
-      <div ref={canvasRef} className="min-h-0 min-w-0 flex-1 overflow-auto" data-preview-scroll>
+      <div
+        ref={canvasRef}
+        tabIndex={0}
+        aria-label="Preview canvas"
+        className="min-h-0 min-w-0 flex-1 overflow-auto"
+        data-preview-scroll
+      >
         {scenario.matrix.enabled ? (
           <MatrixView
             component={scenario.component}
@@ -178,21 +188,26 @@ function MatrixView({
       }}
     >
       {stateChoices.map((choice) => (
-        <button
+        <div
           key={choice.id}
-          type="button"
           data-matrix-card={choice.id}
           onClick={() => onSelect(choice.id)}
           style={{ width }}
-          className="block min-w-0 text-left"
+          className="min-w-0 cursor-pointer"
         >
-          <span className="mb-2 block truncate text-sm font-medium text-indigo-200">{choice.label}</span>
+          <button
+            type="button"
+            aria-label={`Select ${choice.label}`}
+            className="mb-2 block w-full truncate text-left text-sm font-medium text-indigo-200"
+          >
+            {choice.label}
+          </button>
           <PreviewSurface label={choice.label} width={width}>
             <div inert>
               <Sample component={component} state={choice.id} />
             </div>
           </PreviewSurface>
-        </button>
+        </div>
       ))}
     </div>
   )
@@ -212,12 +227,13 @@ function ModeButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`rounded-md border px-2.5 py-1 text-xs ${
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs ${
         pressed
-          ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-100"
+          ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
           : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700"
       }`}
     >
+      <SelectionMark selected={pressed} />
       {children}
     </button>
   )
@@ -281,7 +297,12 @@ function PreviewSurface({
       style={{ width }}
       className="overflow-hidden rounded-[1.35rem] border border-zinc-700 bg-zinc-950 p-2 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
     >
-      <div data-preview-content className="@container w-full min-w-0 overflow-x-auto overscroll-x-contain">
+      <div
+        data-preview-content
+        tabIndex={0}
+        aria-label={`${label} preview`}
+        className="@container w-full min-w-0 overflow-x-auto overscroll-x-contain"
+      >
         {children}
       </div>
     </div>
@@ -293,27 +314,30 @@ function LayoutReport({ frames }: { frames: readonly LayoutFrameReport[] }) {
     <div
       role="status"
       aria-live="polite"
+      aria-atomic="true"
       data-layout-report
       className="border-t border-zinc-800 px-3 py-2"
     >
-      <p className="text-[11px] text-zinc-500">
+      <p className="text-[11px] text-zinc-400">
         Measured from the current preview. This is not a full visual check.
       </p>
       {frames.length === 0 ? (
-        <p className="mt-2 text-xs text-amber-300">No preview frame to measure.</p>
+        <p className="mt-2 text-xs text-amber-200">Warning: No preview frame to measure.</p>
       ) : (
         <ul className="mt-2 flex flex-col gap-2">
           {frames.map((frame) => (
             <li key={frame.label}>
               <p className="text-xs font-medium text-zinc-200">{frame.label}</p>
               <p className="font-mono text-[11px] text-zinc-400">
-                Viewport {frame.viewportWidth}px · Content scroll width {frame.contentScrollWidth}px · Overflow{" "}
-                {frame.overflow}px
+                Viewport {frame.viewportWidth} pixels. Content scroll width {frame.contentScrollWidth} pixels.
+                Overflow {frame.overflow} pixels.
               </p>
               {frame.overflow > 0 ? (
-                <p className="text-xs text-amber-300">Horizontal overflow of {frame.overflow}px.</p>
+                <p className="text-xs text-amber-200">
+                  Warning: {frame.label} has horizontal overflow of {frame.overflow} pixels.
+                </p>
               ) : (
-                <p className="text-xs text-emerald-300">No horizontal overflow.</p>
+                <p className="text-xs text-emerald-200">OK: {frame.label} has no horizontal overflow.</p>
               )}
             </li>
           ))}
@@ -323,11 +347,14 @@ function LayoutReport({ frames }: { frames: readonly LayoutFrameReport[] }) {
   )
 }
 
-function isUIState(value: string): value is UIState {
-  return stateChoices.some((choice) => choice.id === value)
-}
-
 function Sample({ component, state }: { component: ComponentId; state: UIState }) {
+  if (!isComponentId(component) || !isUIState(state)) {
+    return (
+      <p role="alert" className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-sm text-rose-300">
+        This preview isn't available.
+      </p>
+    )
+  }
   switch (component) {
     case "profile":
       return <ProfileCard state={state} />
@@ -335,7 +362,7 @@ function Sample({ component, state }: { component: ComponentId; state: UIState }
       return <ProductList state={state} />
     default: {
       const unexpected: never = component
-      throw new Error(`Unexpected component: ${unexpected}`)
+      return unexpected
     }
   }
 }

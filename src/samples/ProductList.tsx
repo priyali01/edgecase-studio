@@ -1,4 +1,5 @@
 import type { UIState } from "../types.ts"
+import { isUIState } from "../utils/guards.ts"
 
 type ProductListProps = {
   state: UIState
@@ -40,6 +41,7 @@ const longProducts: readonly Product[] = Array.from({ length: 42 }, (_, index) =
 })
 
 export function ProductList({ state }: ProductListProps) {
+  if (!isUIState(state)) return <UnavailablePreview />
   switch (state) {
     case "success":
       return <ProductGrid products={successProducts} />
@@ -53,9 +55,18 @@ export function ProductList({ state }: ProductListProps) {
       return <ProductGrid products={longProducts} />
     default: {
       const unexpected: never = state
-      throw new Error(`Unexpected product list state: ${unexpected}`)
+      return <UnavailablePreview state={unexpected} />
     }
   }
+}
+
+function UnavailablePreview({ state }: { state?: never }) {
+  void state
+  return (
+    <p role="alert" className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-sm text-rose-300">
+      This preview isn't available.
+    </p>
+  )
 }
 
 function ProductGrid({ products }: { products: readonly Product[] }) {
@@ -78,6 +89,7 @@ function ProductGrid({ products }: { products: readonly Product[] }) {
           <div className="mt-3">
             <button
               type="button"
+              aria-label={`Add ${product.title}`}
               className="rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_0_1px_rgba(99,102,241,0.45)] hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
             >
               Add

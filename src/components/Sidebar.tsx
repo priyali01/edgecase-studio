@@ -1,6 +1,8 @@
-import { useState } from "react"
-import type { ReactNode } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { KeyboardEvent, ReactNode } from "react"
+import { SelectionMark } from "./SelectionMark.tsx"
 import { previewWidthLimits, type ScenarioActions } from "../hooks/useScenario.ts"
+import { clampPreviewWidth } from "../utils/guards.ts"
 import { shortcutHelp } from "../hooks/useStudioShortcuts.ts"
 import type { ComponentId, Scenario, UIState, Viewport } from "../types.ts"
 import {
@@ -40,8 +42,39 @@ type SidebarProps = {
 }
 
 export function Sidebar({ scenario, actions }: SidebarProps) {
+  const [widthNotice, setWidthNotice] = useState<string | null>(null)
+  const acceptedWidth = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (acceptedWidth.current === scenario.width) {
+      acceptedWidth.current = null
+      return
+    }
+    setWidthNotice(null)
+  }, [scenario.width, scenario.viewport])
+
+  function onWidthInput(value: number) {
+    if (!Number.isFinite(value)) return
+    const nextWidth = clampPreviewWidth(value)
+    if (nextWidth === null) return
+    if (value < previewWidthLimits.min || value > previewWidthLimits.max) {
+      acceptedWidth.current = nextWidth
+      setWidthNotice(
+        `Width must be from ${previewWidthLimits.min} to ${previewWidthLimits.max} pixels.`,
+      )
+    } else {
+      acceptedWidth.current = null
+      setWidthNotice(null)
+    }
+    actions.setCustomWidth(value)
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain">
+    <div
+      tabIndex={0}
+      aria-label="Sidebar"
+      className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain"
+    >
       <SidebarSection title="Component">
         <ChoiceGroup
           label="Component"
@@ -77,7 +110,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           Matrix
         </label>
         <div className="mt-3">
-          <p className="mb-1.5 text-xs text-zinc-500">Comparison state</p>
+          <p className="mb-1.5 text-xs text-zinc-400">Comparison state</p>
           <ChoiceGroup
             label="Comparison state"
             options={stateOptions}
@@ -92,22 +125,30 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           label="Viewport"
           options={viewportOptions}
           value={scenario.viewport}
-          onChange={actions.selectViewport}
+          onChange={(viewport) => {
+            setWidthNotice(null)
+            acceptedWidth.current = null
+            actions.selectViewport(viewport)
+          }}
         />
-        <label className="mt-3 block text-xs text-zinc-500">
+        <label className="mt-3 block text-xs text-zinc-400">
           Width
+          <span className="sr-only"> in pixels</span>
           <input
             type="number"
             min={previewWidthLimits.min}
             max={previewWidthLimits.max}
             value={scenario.width}
-            onChange={(event) => {
-              const nextWidth = event.currentTarget.valueAsNumber
-              if (Number.isFinite(nextWidth)) actions.setCustomWidth(nextWidth)
-            }}
-            className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 font-mono text-sm text-zinc-100 outline-none focus:border-indigo-400"
+            onChange={(event) => onWidthInput(event.currentTarget.valueAsNumber)}
+            aria-describedby={widthNotice ? "width-notice" : undefined}
+            className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 font-mono text-sm text-zinc-100 focus:border-indigo-400"
           />
         </label>
+        {widthNotice ? (
+          <p id="width-notice" role="status" className="mt-2 text-xs text-amber-200">
+            {widthNotice}
+          </p>
+        ) : null}
       </SidebarSection>
 
       <SidebarSection title="Saved Scenarios">
@@ -149,7 +190,7 @@ function SidebarSection({
 }) {
   return (
     <section className="border-b border-zinc-800 px-4 py-4">
-      <h2 className="font-mono text-[11px] font-medium tracking-[0.16em] text-zinc-500 uppercase">
+      <h2 className="font-mono text-[11px] font-medium tracking-[0.16em] text-zinc-400 uppercase">
         {title}
       </h2>
       <div className="mt-3">{children}</div>
@@ -170,8 +211,33 @@ function ChoiceGroup<T extends string>({
   onChange: (id: T) => void
   disabled?: boolean
 }) {
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (disabled) return
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-choice]")]
+    const focused = buttons.findIndex((button) => button === document.activeElement)
+    const current = focused >= 0 ? focused : options.findIndex((option) => option.id === value)
+    if (current < 0 || buttons.length === 0) return
+    let next = current
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      next = (current + 1) % options.length
+    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      next = (current - 1 + options.length) % options.length
+    } else if (event.key === "Home") {
+      next = 0
+    } else if (event.key === "End") {
+      next = options.length - 1
+    } else {
+      return
+    }
+    event.preventDefault()
+    const option = options[next]
+    if (!option) return
+    onChange(option.id)
+    buttons[next]?.focus()
+  }
+
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-col gap-1.5">
+    <div role="radiogroup" aria-label={label} className="flex flex-col gap-1.5" onKeyDown={onKeyDown}>
       {options.map((option) => {
         const selected = option.id === value
         return (
@@ -179,15 +245,18 @@ function ChoiceGroup<T extends string>({
             key={option.id}
             type="button"
             role="radio"
+            data-choice={option.id}
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(option.id)}
-            className={`w-full rounded-md border px-2.5 py-1.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
               selected
-                ? "border-indigo-400/70 bg-indigo-500/15 text-indigo-100"
+                ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
                 : "border-zinc-800 bg-zinc-900 text-zinc-200 hover:border-zinc-700"
             }`}
           >
+            <SelectionMark selected={selected} />
             {option.label}
           </button>
         )
@@ -222,6 +291,8 @@ function storageErrorMessage(error: StorageError, name = ""): string {
       return "Couldn't update saved scenarios because browser storage is full."
     case "invalid":
       return "This scenario could not be saved."
+    case "invalid-name":
+      return "Use a name up to 80 characters, without line breaks."
     case "not-found":
       return "That saved scenario is no longer stored."
   }
@@ -277,6 +348,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
   const [entries, setEntries] = useState(stored.ok ? stored.scenarios : [])
   const [feedback, setFeedback] = useState<Feedback | null>(initialFeedback(stored))
   const [pending, setPending] = useState<PendingChange | null>(null)
+  const mutationLock = useRef(false)
 
   function draft(): SavedScenario {
     return {
@@ -291,10 +363,6 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
         stateB: scenario.compare.stateB,
       },
     }
-  }
-
-  function applySavedName(saved: SavedScenario | undefined) {
-    if (saved && saved.name !== scenario.name) actions.setName(saved.name)
   }
 
   function applyMutation(result: StorageMutationResult, success: string) {
@@ -320,32 +388,54 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
       return
     }
     setPending(null)
-    applySavedName(result.saved)
+    if (result.saved) actions.rememberSaved(result.saved)
     setFeedback({ tone: "ok", message: success })
   }
 
+  function runMutation(apply: () => void) {
+    if (mutationLock.current) return
+    mutationLock.current = true
+    try {
+      apply()
+    } finally {
+      mutationLock.current = false
+    }
+  }
+
   function onSave() {
-    const result = saveScenario(draft(), false)
-    const name = result.ok ? result.saved?.name ?? scenario.name.trim() : scenario.name.trim()
-    applyMutation(result, `Saved "${name}".`)
+    runMutation(() => {
+      const result = saveScenario(draft(), false)
+      const name = result.ok ? result.saved?.name ?? scenario.name.trim() : scenario.name.trim()
+      applyMutation(result, `Saved "${name}".`)
+    })
   }
 
   function confirmPending() {
     if (!pending) return
-    if (pending.kind === "delete") {
-      const result = deleteSavedScenario(pending.id)
-      applyMutation(result, `Deleted "${pending.name}".`)
-      return
-    }
-    if (pending.kind === "overwrite") {
-      const result = saveScenario(draft(), true)
-      const name = result.ok ? result.saved?.name ?? pending.name : pending.name
-      applyMutation(result, `Replaced saved scenario "${name}".`)
-      return
-    }
-    const result = replaceSavedScenarios(draft())
-    const name = result.ok ? result.saved?.name ?? pending.name : pending.name
-    applyMutation(result, `Replaced stored scenarios with "${name}".`)
+    const change = pending
+    runMutation(() => {
+      if (change.kind === "delete") {
+        const loaded = scenario.id === change.id
+        const result = deleteSavedScenario(change.id)
+        if (loaded && (result.ok || result.error === "not-found")) actions.releaseSaved(change.id)
+        applyMutation(
+          result,
+          loaded
+            ? `Deleted "${change.name}". The preview is unchanged.`
+            : `Deleted "${change.name}".`,
+        )
+        return
+      }
+      if (change.kind === "overwrite") {
+        const result = saveScenario(draft(), true)
+        const name = result.ok ? result.saved?.name ?? change.name : change.name
+        applyMutation(result, `Replaced saved scenario "${name}".`)
+        return
+      }
+      const result = replaceSavedScenarios(draft())
+      const name = result.ok ? result.saved?.name ?? change.name : change.name
+      applyMutation(result, `Replaced stored scenarios with "${name}".`)
+    })
   }
 
   function cancelPending() {
@@ -359,7 +449,11 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
   }
 
   function onLoad(entry: SavedScenario) {
-    actions.loadScenario(entry)
+    if (!actions.loadScenario(entry)) {
+      setPending(null)
+      setFeedback({ tone: "error", message: "That saved scenario could not be loaded." })
+      return
+    }
     setPending(null)
     setFeedback({ tone: "ok", message: `Loaded "${entry.name}".` })
   }
@@ -379,7 +473,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
 
   return (
     <div>
-      <label className="block text-xs text-zinc-500" htmlFor="scenario-name">
+      <label className="block text-xs text-zinc-400" htmlFor="scenario-name">
         Scenario name
         <input
           id="scenario-name"
@@ -387,14 +481,21 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
           maxLength={80}
           value={scenario.name}
           aria-describedby={visibleFeedback ? "saved-scenario-status" : undefined}
-          onChange={(event) => actions.setName(event.currentTarget.value)}
+          onChange={(event) => {
+            const nextName = event.currentTarget.value
+            actions.setName(nextName)
+            if (pending && pending.kind !== "delete" && pending.name !== nextName.trim()) {
+              setPending(null)
+              setFeedback(null)
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault()
               onSave()
             }
           }}
-          className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 outline-none focus:border-indigo-400"
+          className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 focus:border-indigo-400"
         />
       </label>
       <button
@@ -406,8 +507,9 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
       </button>
       {visibleFeedback ? (
         <p
+          key={visibleFeedback.message}
           id="saved-scenario-status"
-          role="status"
+          role={visibleFeedback.tone === "error" ? "alert" : "status"}
           data-scenario-feedback={visibleFeedback.tone}
           className={`mt-3 text-sm ${visibleFeedback.tone === "ok" ? "text-emerald-300" : "text-rose-300"}`}
         >
@@ -437,7 +539,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
         </div>
       ) : null}
       {entries.length === 0 && visibleFeedback?.tone !== "error" ? (
-        <p className="mt-3 rounded-md border border-dashed border-zinc-800 px-3 py-6 text-center text-sm text-zinc-500">
+        <p className="mt-3 rounded-md border border-dashed border-zinc-800 px-3 py-6 text-center text-sm text-zinc-400">
           No saved scenarios
         </p>
       ) : null}
@@ -454,7 +556,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
                 <p className="truncate text-sm text-zinc-100" title={entry.name}>
                   {entry.name}
                 </p>
-                <p className="mt-0.5 truncate font-mono text-[11px] text-zinc-500" title={detail}>
+                <p className="mt-0.5 truncate font-mono text-[11px] text-zinc-400" title={detail}>
                   {detail}
                 </p>
                 <div className="mt-2 flex gap-1.5">

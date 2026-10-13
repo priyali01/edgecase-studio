@@ -1,26 +1,17 @@
 import { useState } from "react"
 import type { ComponentId, Scenario, UIState, Viewport } from "../types.ts"
+import {
+  clampPreviewWidth,
+  isComponentId,
+  isUIState,
+  isViewport,
+  previewWidthLimits,
+  readScenarioRecord,
+  sanitizeLiveName,
+  viewportPresets,
+} from "../utils/guards.ts"
 
-export const previewWidthLimits = {
-  min: 320,
-  max: 1440,
-} as const
-
-const presetWidths = {
-  mobile: 375,
-  tablet: 768,
-  desktop: 1280,
-} as const satisfies Record<Exclude<Viewport, "custom">, number>
-
-export const viewportPresets: readonly {
-  id: Exclude<Viewport, "custom">
-  label: string
-  width: number
-}[] = [
-  { id: "mobile", label: "Mobile", width: presetWidths.mobile },
-  { id: "tablet", label: "Tablet", width: presetWidths.tablet },
-  { id: "desktop", label: "Desktop", width: presetWidths.desktop },
-]
+export { previewWidthLimits, viewportPresets }
 
 export function createDefaultScenario(): Scenario {
   return {
@@ -29,7 +20,7 @@ export function createDefaultScenario(): Scenario {
     component: "profile",
     state: "success",
     viewport: "desktop",
-    width: presetWidths.desktop,
+    width: 1280,
     compare: {
       enabled: false,
       stateB: "empty",
@@ -48,10 +39,17 @@ export type ScenarioActions = {
   toggleCompare: () => void
   setCompareEnabled: (enabled: boolean) => void
   setCompareState: (stateB: UIState) => void
+  toggleMatrix: () => void
   setMatrixEnabled: (enabled: boolean) => void
   setName: (name: string) => void
-  loadScenario: (saved: Omit<Scenario, "matrix">) => void
+  loadScenario: (saved: unknown) => boolean
+  rememberSaved: (saved: unknown) => void
+  releaseSaved: (id: unknown) => void
   reset: () => void
+}
+
+function presetWidth(viewport: Exclude<Viewport, "custom">): number | null {
+  return viewportPresets.find((preset) => preset.id === viewport)?.width ?? null
 }
 
 export function useScenario(): { scenario: Scenario; actions: ScenarioActions } {
@@ -59,80 +57,119 @@ export function useScenario(): { scenario: Scenario; actions: ScenarioActions } 
 
   const actions: ScenarioActions = {
     selectComponent(component) {
-      setScenario((current) => ({ ...current, component }))
+      if (!isComponentId(component)) return
+      setScenario((current) => (current.component === component ? current : { ...current, component }))
     },
     setState(state) {
-      setScenario((current) => ({ ...current, state }))
+      if (!isUIState(state)) return
+      setScenario((current) => (current.state === state ? current : { ...current, state }))
     },
     selectViewport(viewport) {
-      setScenario((current) => ({
-        ...current,
-        viewport,
-        width: viewport === "custom" ? current.width : presetWidths[viewport],
-      }))
+      if (!isViewport(viewport)) return
+      setScenario((current) => {
+        if (viewport === "custom") {
+          return current.viewport === "custom" ? current : { ...current, viewport: "custom" }
+        }
+        const width = presetWidth(viewport)
+        if (width === null) return current
+        if (current.viewport === viewport && current.width === width) return current
+        return { ...current, viewport, width }
+      })
     },
     setCustomWidth(width) {
-      if (!Number.isFinite(width)) return
-      const nextWidth = Math.min(
-        previewWidthLimits.max,
-        Math.max(previewWidthLimits.min, Math.round(width)),
+      const nextWidth = clampPreviewWidth(width)
+      if (nextWidth === null) return
+      setScenario((current) =>
+        current.viewport === "custom" && current.width === nextWidth
+          ? current
+          : { ...current, viewport: "custom", width: nextWidth },
       )
-      setScenario((current) => ({
-        ...current,
-        viewport: "custom",
-        width: nextWidth,
-      }))
     },
     toggleCompare() {
-      setScenario((current) => ({
-        ...current,
-        compare: { ...current.compare, enabled: !current.compare.enabled },
-        matrix: {
-          ...current.matrix,
-          enabled: current.compare.enabled ? current.matrix.enabled : false,
-        },
-      }))
+      setScenario((current) => {
+        const enabled = !current.compare.enabled
+        return {
+          ...current,
+          compare: { ...current.compare, enabled },
+          matrix: { enabled: enabled ? false : current.matrix.enabled },
+        }
+      })
     },
     setCompareEnabled(enabled) {
-      setScenario((current) => ({
-        ...current,
-        compare: { ...current.compare, enabled },
-        matrix: { ...current.matrix, enabled: enabled ? false : current.matrix.enabled },
-      }))
+      if (typeof enabled !== "boolean") return
+      setScenario((current) => {
+        if (current.compare.enabled === enabled && (!enabled || !current.matrix.enabled)) return current
+        return {
+          ...current,
+          compare: { ...current.compare, enabled },
+          matrix: { enabled: enabled ? false : current.matrix.enabled },
+        }
+      })
     },
     setCompareState(stateB) {
-      setScenario((current) => ({
-        ...current,
-        compare: { ...current.compare, stateB },
-      }))
+      if (!isUIState(stateB)) return
+      setScenario((current) =>
+        current.compare.stateB === stateB
+          ? current
+          : { ...current, compare: { ...current.compare, stateB } },
+      )
+    },
+    toggleMatrix() {
+      setScenario((current) => {
+        const enabled = !current.matrix.enabled
+        return {
+          ...current,
+          matrix: { enabled },
+          compare: { ...current.compare, enabled: enabled ? false : current.compare.enabled },
+        }
+      })
     },
     setMatrixEnabled(enabled) {
-      setScenario((current) => ({
-        ...current,
-        matrix: { ...current.matrix, enabled },
-        compare: {
-          ...current.compare,
-          enabled: enabled ? false : current.compare.enabled,
-        },
-      }))
+      if (typeof enabled !== "boolean") return
+      setScenario((current) => {
+        if (current.matrix.enabled === enabled && (!enabled || !current.compare.enabled)) return current
+        return {
+          ...current,
+          matrix: { enabled },
+          compare: { ...current.compare, enabled: enabled ? false : current.compare.enabled },
+        }
+      })
     },
     setName(name) {
-      setScenario((current) => ({ ...current, name: name.slice(0, 80) }))
+      if (typeof name !== "string") return
+      const nextName = sanitizeLiveName(name)
+      setScenario((current) => (current.name === nextName ? current : { ...current, name: nextName }))
     },
     loadScenario(saved) {
+      const record = readScenarioRecord(saved)
+      if (!record) return false
       setScenario({
-        id: saved.id,
-        name: saved.name,
-        component: saved.component,
-        state: saved.state,
-        viewport: saved.viewport,
-        width: saved.width,
+        id: record.id,
+        name: record.name,
+        component: record.component,
+        state: record.state,
+        viewport: record.viewport,
+        width: record.width,
         compare: {
-          enabled: saved.compare.enabled,
-          stateB: saved.compare.stateB,
+          enabled: record.compare.enabled,
+          stateB: record.compare.stateB,
         },
         matrix: { enabled: false },
       })
+      return true
+    },
+    rememberSaved(saved) {
+      const record = readScenarioRecord(saved)
+      if (!record) return
+      setScenario((current) =>
+        current.id === record.id && current.name === record.name
+          ? current
+          : { ...current, id: record.id, name: record.name },
+      )
+    },
+    releaseSaved(id) {
+      if (typeof id !== "string" || id.length === 0) return
+      setScenario((current) => (current.id === id ? { ...current, id: "current" } : current))
     },
     reset() {
       setScenario(createDefaultScenario())

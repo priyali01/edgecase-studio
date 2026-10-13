@@ -1,24 +1,15 @@
-import { previewWidthLimits, viewportPresets } from "../hooks/useScenario.ts"
-import type { CompareConfig, ComponentId, UIState, Viewport } from "../types.ts"
+import {
+  nameProblem,
+  readScenarioRecord,
+  sameScenarioContent,
+  type ScenarioRecord,
+} from "./guards.ts"
 
 export const savedScenariosStorageKey = "edgecase-studio.scenarios"
 
 const savedScenarioVersion = 1
-const labelMaxLength = 80
 
-const componentIds = ["profile", "products"] as const satisfies readonly ComponentId[]
-const uiStates = ["success", "loading", "empty", "error", "long"] as const satisfies readonly UIState[]
-const viewports = ["mobile", "tablet", "desktop", "custom"] as const satisfies readonly Viewport[]
-
-export type SavedScenario = {
-  id: string
-  name: string
-  component: ComponentId
-  state: UIState
-  viewport: Viewport
-  width: number
-  compare: CompareConfig
-}
+export type SavedScenario = ScenarioRecord
 
 export type StorageError =
   | "unavailable"
@@ -27,6 +18,7 @@ export type StorageError =
   | "duplicate-name"
   | "empty-name"
   | "invalid"
+  | "invalid-name"
   | "not-found"
   | "write-failed"
 
@@ -45,26 +37,6 @@ type StoredEnvelope = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function isOneOf<T extends string>(value: unknown, allowed: readonly T[]): value is T {
-  return typeof value === "string" && allowed.some((item) => item === value)
-}
-
-function isValidLabel(value: string): boolean {
-  if (value.length === 0 || value.length > labelMaxLength) return false
-  for (const character of value) {
-    const code = character.codePointAt(0)
-    if (code !== undefined && (code <= 31 || code === 127)) return false
-  }
-  return true
-}
-
-function isValidWidth(viewport: Viewport, width: unknown): width is number {
-  if (typeof width !== "number" || !Number.isInteger(width)) return false
-  if (width < previewWidthLimits.min || width > previewWidthLimits.max) return false
-  if (viewport === "custom") return true
-  return viewportPresets.some((preset) => preset.id === viewport && preset.width === width)
 }
 
 function getLocalStorage(): Storage | null {
@@ -89,32 +61,7 @@ function isQuotaError(error: unknown): boolean {
 }
 
 function parseSavedScenario(value: unknown): SavedScenario | null {
-  if (!isRecord(value)) return null
-  if (typeof value.id !== "string" || typeof value.name !== "string") return null
-  if (!isOneOf(value.component, componentIds)) return null
-  if (!isOneOf(value.state, uiStates)) return null
-  if (!isOneOf(value.viewport, viewports)) return null
-  if (!isValidWidth(value.viewport, value.width)) return null
-  if (!isRecord(value.compare)) return null
-  if (typeof value.compare.enabled !== "boolean") return null
-  if (!isOneOf(value.compare.stateB, uiStates)) return null
-
-  const id = value.id.trim()
-  const name = value.name.trim()
-  if (!isValidLabel(id) || !isValidLabel(name)) return null
-
-  return {
-    id,
-    name,
-    component: value.component,
-    state: value.state,
-    viewport: value.viewport,
-    width: value.width,
-    compare: {
-      enabled: value.compare.enabled,
-      stateB: value.compare.stateB,
-    },
-  }
+  return readScenarioRecord(value)
 }
 
 function collectValidScenarios(items: readonly unknown[]): { scenarios: SavedScenario[]; dropped: number } {
@@ -225,23 +172,35 @@ function draftScenario(input: SavedScenario, id: string, name: string): SavedSce
   })
 }
 
+function rejectName(name: string, scenarios: SavedScenario[]): StorageMutationResult | null {
+  const problem = nameProblem(name)
+  if (!problem) return null
+  return { ok: false, error: problem, scenarios }
+}
+
 export function saveScenario(input: SavedScenario, overwrite: boolean): StorageMutationResult {
   const name = input.name.trim()
-  if (name.length === 0) {
-    const current = readSavedScenarios()
-    return { ok: false, error: "empty-name", scenarios: current.ok ? current.scenarios : [] }
-  }
-
   const current = readSavedScenarios()
+  const stored = current.ok ? current.scenarios : []
+  const rejected = rejectName(name, stored)
+  if (rejected) return rejected
   if (!current.ok) return { ok: false, error: current.error, scenarios: [] }
 
   const existing = current.scenarios.find((scenario) => scenario.name === name)
+  const scenario = draftScenario(input, existing?.id ?? createSavedScenarioId(current.scenarios), name)
+  if (!scenario) {
+    return {
+      ok: false,
+      error: nameProblem(name) ?? "invalid",
+      scenarios: current.scenarios,
+    }
+  }
+  if (existing && sameScenarioContent(existing, scenario)) {
+    return { ok: true, scenarios: current.scenarios, saved: existing }
+  }
   if (existing && !overwrite) {
     return { ok: false, error: "duplicate-name", scenarios: current.scenarios }
   }
-
-  const scenario = draftScenario(input, existing?.id ?? createSavedScenarioId(current.scenarios), name)
-  if (!scenario) return { ok: false, error: "invalid", scenarios: current.scenarios }
 
   const scenarios = existing
     ? current.scenarios.map((item) => (item.id === existing.id ? scenario : item))
@@ -253,10 +212,11 @@ export function saveScenario(input: SavedScenario, overwrite: boolean): StorageM
 
 export function replaceSavedScenarios(input: SavedScenario): StorageMutationResult {
   const name = input.name.trim()
-  if (name.length === 0) return { ok: false, error: "empty-name", scenarios: [] }
+  const rejected = rejectName(name, [])
+  if (rejected) return rejected
 
   const scenario = draftScenario(input, createSavedScenarioId([]), name)
-  if (!scenario) return { ok: false, error: "invalid", scenarios: [] }
+  if (!scenario) return { ok: false, error: nameProblem(name) ?? "invalid", scenarios: [] }
 
   const written = writeSavedScenarios([scenario])
   if (!written.ok) return { ok: false, error: written.error, scenarios: [] }
