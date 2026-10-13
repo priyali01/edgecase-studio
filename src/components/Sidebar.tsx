@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
 import { previewWidthLimits, type ScenarioActions } from "../hooks/useScenario.ts"
+import { shortcutHelp } from "../hooks/useStudioShortcuts.ts"
 import type { ComponentId, Scenario, UIState, Viewport } from "../types.ts"
 import {
   deleteSavedScenario,
@@ -111,6 +112,19 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
 
       <SidebarSection title="Saved Scenarios">
         <SavedScenarios scenario={scenario} actions={actions} />
+      </SidebarSection>
+
+      <SidebarSection title="Shortcuts">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Keyboard shortcuts">
+          {shortcutHelp.map((item) => (
+            <li key={item.key} className="flex min-w-0 items-center gap-2 text-xs">
+              <kbd className="w-4 shrink-0 text-center font-mono text-[11px] text-indigo-200">
+                {item.key}
+              </kbd>
+              <span className="truncate text-zinc-400">{item.label}</span>
+            </li>
+          ))}
+        </ul>
       </SidebarSection>
 
       <div className="px-4 py-4">

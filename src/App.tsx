@@ -2,10 +2,12 @@ import { useEffect, useState } from "react"
 import { Preview } from "./components/Preview.tsx"
 import { Sidebar } from "./components/Sidebar.tsx"
 import { useScenario } from "./hooks/useScenario.ts"
+import { useStudioShortcuts } from "./hooks/useStudioShortcuts.ts"
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { scenario, actions } = useScenario()
+  useStudioShortcuts(scenario, actions)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

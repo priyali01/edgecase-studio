@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import {
   previewWidthLimits,
   viewportPresets,
@@ -21,10 +21,41 @@ type PreviewProps = {
   actions: ScenarioActions
 }
 
+type LayoutFrameReport = {
+  label: string
+  viewportWidth: number
+  contentScrollWidth: number
+  overflow: number
+}
+
+function readLayoutReport(canvas: HTMLElement): LayoutFrameReport[] {
+  return [...canvas.querySelectorAll<HTMLElement>("[data-preview-frame]")].map((frame) => {
+    const content = frame.querySelector<HTMLElement>("[data-preview-content]") ?? frame
+    const viewportWidth = Math.round(frame.getBoundingClientRect().width)
+    const contentScrollWidth = content.scrollWidth
+    const overflow = Math.max(0, contentScrollWidth - content.clientWidth)
+    return {
+      label: frame.getAttribute("data-preview-label") ?? "Preview",
+      viewportWidth,
+      contentScrollWidth,
+      overflow,
+    }
+  })
+}
+
 export function Preview({ scenario, actions }: PreviewProps) {
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const [layoutReport, setLayoutReport] = useState<LayoutFrameReport[] | null>(null)
+
+  function checkLayout() {
+    const canvas = canvasRef.current
+    setLayoutReport(canvas ? readLayoutReport(canvas) : [])
+  }
+
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950">
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-zinc-800 px-3 py-2">
+      <div className="shrink-0 border-b border-zinc-800">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
         <div className="flex flex-wrap gap-1" role="group" aria-label="View mode">
           <ModeButton
             pressed={scenario.compare.enabled}
@@ -59,7 +90,7 @@ export function Preview({ scenario, actions }: PreviewProps) {
             )
           })}
         </div>
-        <label className="flex min-w-0 flex-1 items-center gap-2">
+        <label className="flex min-w-44 flex-1 items-center gap-2">
           <span className="sr-only">Preview width</span>
           <input
             type="range"
@@ -75,9 +106,18 @@ export function Preview({ scenario, actions }: PreviewProps) {
             {scenario.width}px
           </span>
         </label>
+        <button
+          type="button"
+          onClick={checkLayout}
+          className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300 hover:border-zinc-700"
+        >
+          Check layout
+        </button>
+      </div>
+      {layoutReport ? <LayoutReport frames={layoutReport} /> : null}
       </div>
 
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto" data-preview-scroll>
+      <div ref={canvasRef} className="min-h-0 min-w-0 flex-1 overflow-auto" data-preview-scroll>
         {scenario.matrix.enabled ? (
           <MatrixView
             component={scenario.component}
@@ -143,18 +183,15 @@ function MatrixView({
           type="button"
           data-matrix-card={choice.id}
           onClick={() => onSelect(choice.id)}
-          className="block w-fit text-left"
+          style={{ width }}
+          className="block min-w-0 text-left"
         >
-          <span className="mb-2 block text-sm font-medium text-indigo-200">{choice.label}</span>
-          <div
-            data-preview-frame
-            style={{ width }}
-            className="rounded-[1.35rem] border border-zinc-700 bg-zinc-950 p-2 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
-          >
-            <div inert className="@container w-full">
+          <span className="mb-2 block truncate text-sm font-medium text-indigo-200">{choice.label}</span>
+          <PreviewSurface label={choice.label} width={width}>
+            <div inert>
               <Sample component={component} state={choice.id} />
             </div>
-          </div>
+          </PreviewSurface>
         </button>
       ))}
     </div>
@@ -201,8 +238,8 @@ function PreviewFrame({
 }) {
   return (
     <section className="shrink-0" data-compare-frame={title}>
-      <div className="mb-2 flex items-center justify-between gap-2" style={{ width }}>
-        <h2 className="font-mono text-[11px] font-medium tracking-[0.14em] text-indigo-300 uppercase">
+      <div className="mb-2 flex min-w-0 items-center justify-between gap-2" style={{ width }}>
+        <h2 className="min-w-0 truncate font-mono text-[11px] font-medium tracking-[0.14em] text-indigo-300 uppercase">
           {title}
         </h2>
         <select
@@ -212,7 +249,7 @@ function PreviewFrame({
             const nextState = event.currentTarget.value
             if (isUIState(nextState)) onStateChange(nextState)
           }}
-          className="max-w-[65%] rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+          className="max-w-[65%] shrink-0 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
         >
           {stateChoices.map((choice) => (
             <option key={choice.id} value={choice.id}>
@@ -221,14 +258,68 @@ function PreviewFrame({
           ))}
         </select>
       </div>
-      <div
-        data-preview-frame
-        style={{ width }}
-        className="rounded-[1.35rem] border border-zinc-700 bg-zinc-950 p-2 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
-      >
-        <div className="@container w-full">{children}</div>
-      </div>
+      <PreviewSurface label={title} width={width}>
+        {children}
+      </PreviewSurface>
     </section>
+  )
+}
+
+function PreviewSurface({
+  label,
+  width,
+  children,
+}: {
+  label: string
+  width: number
+  children: ReactNode
+}) {
+  return (
+    <div
+      data-preview-frame
+      data-preview-label={label}
+      style={{ width }}
+      className="overflow-hidden rounded-[1.35rem] border border-zinc-700 bg-zinc-950 p-2 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
+    >
+      <div data-preview-content className="@container w-full min-w-0 overflow-x-auto overscroll-x-contain">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function LayoutReport({ frames }: { frames: readonly LayoutFrameReport[] }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-layout-report
+      className="border-t border-zinc-800 px-3 py-2"
+    >
+      <p className="text-[11px] text-zinc-500">
+        Measured from the current preview. This is not a full visual check.
+      </p>
+      {frames.length === 0 ? (
+        <p className="mt-2 text-xs text-amber-300">No preview frame to measure.</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-2">
+          {frames.map((frame) => (
+            <li key={frame.label}>
+              <p className="text-xs font-medium text-zinc-200">{frame.label}</p>
+              <p className="font-mono text-[11px] text-zinc-400">
+                Viewport {frame.viewportWidth}px · Content scroll width {frame.contentScrollWidth}px · Overflow{" "}
+                {frame.overflow}px
+              </p>
+              {frame.overflow > 0 ? (
+                <p className="text-xs text-amber-300">Horizontal overflow of {frame.overflow}px.</p>
+              ) : (
+                <p className="text-xs text-emerald-300">No horizontal overflow.</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
