@@ -30,6 +30,14 @@ type LayoutFrameReport = {
   overflow: number
 }
 
+const stateLabels: Record<UIState, string> = {
+  success: "Success",
+  loading: "Loading",
+  empty: "Empty",
+  error: "Error",
+  long: "Long content",
+}
+
 function readLayoutReport(canvas: HTMLElement): LayoutFrameReport[] {
   return [...canvas.querySelectorAll<HTMLElement>("[data-preview-frame]")].map((frame) => {
     const content = frame.querySelector<HTMLElement>("[data-preview-content]") ?? frame
@@ -45,20 +53,65 @@ function readLayoutReport(canvas: HTMLElement): LayoutFrameReport[] {
   })
 }
 
+function formatTestReport(scenario: Scenario | null | undefined, frames: readonly LayoutFrameReport[]): string {
+  const name =
+    typeof scenario?.name === "string" && scenario.name.trim()
+      ? scenario.name.trim()
+      : "Unnamed scenario"
+  const width = Number.isFinite(scenario?.width) ? `${scenario?.width}px` : "Unavailable"
+  const state = scenario ? stateLabels[scenario.state] ?? "Unknown" : "Unknown"
+  const overflow = frames.length === 0
+    ? "Not detected"
+    : frames.some((frame) => frame.overflow > 0)
+      ? frames
+          .filter((frame) => frame.overflow > 0)
+          .map((frame) => `${frame.label}: ${frame.overflow}px`)
+          .join(", ")
+      : "None detected"
+
+  return [
+    "EdgeCase Studio test report",
+    `Scenario: ${name}`,
+    `Viewport width: ${width}`,
+    `Selected state: ${state}`,
+    `Horizontal overflow: ${overflow}`,
+  ].join("\n")
+}
+
 export function Preview({ scenario, actions }: PreviewProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [layoutReport, setLayoutReport] = useState<LayoutFrameReport[] | null>(null)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   function checkLayout() {
     const canvas = canvasRef.current
     setLayoutReport(canvas ? readLayoutReport(canvas) : [])
   }
 
+  async function copyTestReport() {
+    const canvas = canvasRef.current
+    const frames = canvas ? readLayoutReport(canvas) : []
+    setLayoutReport(frames)
+    const report = formatTestReport(scenario, frames)
+
+    if (!navigator.clipboard) {
+      setCopyFeedback("Couldn't copy the test report in this browser.")
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(report)
+      setCopyFeedback("Test report copied.")
+    } catch {
+      setCopyFeedback("Couldn't copy the test report.")
+    }
+  }
+
   return (
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-950">
-      <div className="shrink-0 border-b border-zinc-800">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
-        <div className="flex flex-wrap gap-1" role="group" aria-label="View mode">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="glass-bar shrink-0 border-b border-white/10">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 px-2.5 py-1.5">
+        <div className="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" role="group" aria-label="View mode">
           <ModeButton
             pressed={scenario.compare.enabled}
             onClick={() => actions.toggleCompare()}
@@ -72,7 +125,7 @@ export function Preview({ scenario, actions }: PreviewProps) {
             Matrix
           </ModeButton>
         </div>
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Viewport presets">
+        <div className="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" role="group" aria-label="Viewport presets">
           {viewportPresets.map((preset) => {
             const selected = scenario.viewport === preset.id
             return (
@@ -81,10 +134,10 @@ export function Preview({ scenario, actions }: PreviewProps) {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => actions.selectViewport(preset.id)}
-                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs ${
+                className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] transition-colors duration-150 motion-reduce:transition-none ${
                   selected
-                    ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
-                    : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700"
+                    ? "bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
                 }`}
               >
                 <SelectionMark selected={selected} />
@@ -106,19 +159,31 @@ export function Preview({ scenario, actions }: PreviewProps) {
             }}
             className="min-w-24 flex-1 accent-indigo-500"
           />
-          <span className="w-14 shrink-0 text-right font-mono text-xs text-indigo-300">
+          <span className="w-14 shrink-0 text-right font-mono text-[11px] text-zinc-300 tabular-nums">
             {scenario.width}px
           </span>
         </label>
         <button
           type="button"
           onClick={checkLayout}
-          className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300 hover:border-zinc-700"
+          className="rounded-md border border-zinc-700 bg-black/30 px-2.5 py-1 text-[12px] text-zinc-300 transition-colors duration-150 hover:border-zinc-500 hover:text-zinc-100 motion-reduce:transition-none"
         >
           Check layout
         </button>
+        <button
+          type="button"
+          onClick={() => void copyTestReport()}
+          className="rounded-md border border-zinc-700 bg-black/30 px-2.5 py-1 text-[12px] text-zinc-300 transition-colors duration-150 hover:border-zinc-500 hover:text-zinc-100 motion-reduce:transition-none"
+        >
+          Copy test report
+        </button>
       </div>
       {layoutReport ? <LayoutReport frames={layoutReport} /> : null}
+      {copyFeedback ? (
+        <p role="status" aria-live="polite" className="border-t border-white/10 px-3 py-1.5 text-[11px] text-zinc-400">
+          {copyFeedback}
+        </p>
+      ) : null}
       </div>
 
       <div
@@ -138,9 +203,9 @@ export function Preview({ scenario, actions }: PreviewProps) {
             }}
           />
         ) : (
-          <div className="flex min-h-full w-fit min-w-full justify-center p-4">
+          <div className="flex min-h-full w-fit min-w-full justify-center p-3 md:p-5">
             <div
-              className={`flex items-start gap-4 ${
+              className={`flex items-start gap-5 ${
                 scenario.compare.enabled ? "flex-col md:flex-row" : ""
               }`}
             >
@@ -182,7 +247,7 @@ function MatrixView({
   return (
     <div
       data-matrix-grid
-      className="grid gap-4 p-4"
+      className="grid gap-5 p-3 md:p-5"
       style={{
         gridTemplateColumns: `repeat(auto-fill, minmax(${width}px, ${width}px))`,
       }}
@@ -193,12 +258,12 @@ function MatrixView({
           data-matrix-card={choice.id}
           onClick={() => onSelect(choice.id)}
           style={{ width }}
-          className="min-w-0 cursor-pointer"
+          className="group min-w-0 cursor-pointer"
         >
           <button
             type="button"
             aria-label={`Select ${choice.label}`}
-            className="mb-2 block w-full truncate text-left text-sm font-medium text-indigo-200"
+            className="mb-1.5 block w-full truncate text-left text-[12px] font-medium tracking-wide text-zinc-400 uppercase transition-colors duration-150 group-hover:text-zinc-100 motion-reduce:transition-none"
           >
             {choice.label}
           </button>
@@ -227,10 +292,10 @@ function ModeButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs ${
+      className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] transition-colors duration-150 motion-reduce:transition-none ${
         pressed
-          ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
-          : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700"
+          ? "bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
+          : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
       }`}
     >
       <SelectionMark selected={pressed} />
@@ -254,8 +319,8 @@ function PreviewFrame({
 }) {
   return (
     <section className="shrink-0" data-compare-frame={title}>
-      <div className="mb-2 flex min-w-0 items-center justify-between gap-2" style={{ width }}>
-        <h2 className="min-w-0 truncate font-mono text-[11px] font-medium tracking-[0.14em] text-indigo-300 uppercase">
+      <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2" style={{ width }}>
+        <h2 className="min-w-0 truncate text-[11px] font-medium tracking-[0.08em] text-zinc-400 uppercase">
           {title}
         </h2>
         <select
@@ -265,7 +330,7 @@ function PreviewFrame({
             const nextState = event.currentTarget.value
             if (isUIState(nextState)) onStateChange(nextState)
           }}
-          className="max-w-[65%] shrink-0 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100"
+          className="max-w-[65%] shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[12px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-white/20 motion-reduce:transition-none"
         >
           {stateChoices.map((choice) => (
             <option key={choice.id} value={choice.id}>
@@ -295,7 +360,7 @@ function PreviewSurface({
       data-preview-frame
       data-preview-label={label}
       style={{ width }}
-      className="overflow-hidden rounded-[1.35rem] border border-zinc-700 bg-zinc-950 p-2 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]"
+      className="glass-panel overflow-hidden rounded-[20px] p-1.5 transition-[border-color,box-shadow] duration-150 group-hover:border-white/20 motion-reduce:transition-none"
     >
       <div
         data-preview-content
@@ -316,7 +381,7 @@ function LayoutReport({ frames }: { frames: readonly LayoutFrameReport[] }) {
       aria-live="polite"
       aria-atomic="true"
       data-layout-report
-      className="border-t border-zinc-800 px-3 py-2"
+      className="glass-bar border-t border-white/10 px-3 py-2"
     >
       <p className="text-[11px] text-zinc-400">
         Measured from the current preview. This is not a full visual check.

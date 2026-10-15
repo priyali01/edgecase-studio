@@ -91,7 +91,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           value={scenario.state}
           onChange={actions.setState}
         />
-        <label className="mt-3 flex items-center gap-2 text-sm text-zinc-200">
+        <label className="mt-3 flex items-center gap-2 text-[13px] text-zinc-300">
           <input
             type="checkbox"
             className="size-3.5 accent-indigo-500"
@@ -100,7 +100,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           />
           Compare
         </label>
-        <label className="mt-2 flex items-center gap-2 text-sm text-zinc-200">
+        <label className="mt-2 flex items-center gap-2 text-[13px] text-zinc-300">
           <input
             type="checkbox"
             className="size-3.5 accent-indigo-500"
@@ -110,7 +110,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
           Matrix
         </label>
         <div className="mt-3">
-          <p className="mb-1.5 text-xs text-zinc-400">Comparison state</p>
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-zinc-400 uppercase">Comparison state</p>
           <ChoiceGroup
             label="Comparison state"
             options={stateOptions}
@@ -131,7 +131,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
             actions.selectViewport(viewport)
           }}
         />
-        <label className="mt-3 block text-xs text-zinc-400">
+        <label className="mt-3 block text-[11px] font-medium tracking-wide text-zinc-400 uppercase">
           Width
           <span className="sr-only"> in pixels</span>
           <input
@@ -141,7 +141,7 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
             value={scenario.width}
             onChange={(event) => onWidthInput(event.currentTarget.valueAsNumber)}
             aria-describedby={widthNotice ? "width-notice" : undefined}
-            className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 font-mono text-sm text-zinc-100 focus:border-indigo-400"
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-mono text-[13px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 focus:border-white/25 motion-reduce:transition-none"
           />
         </label>
         {widthNotice ? (
@@ -156,10 +156,10 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
       </SidebarSection>
 
       <SidebarSection title="Shortcuts">
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Keyboard shortcuts">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5" aria-label="Keyboard shortcuts">
           {shortcutHelp.map((item) => (
-            <li key={item.key} className="flex min-w-0 items-center gap-2 text-xs">
-              <kbd className="w-4 shrink-0 text-center font-mono text-[11px] text-indigo-200">
+            <li key={item.key} className="flex min-w-0 items-center gap-2 text-[12px]">
+              <kbd className="inline-grid h-5 min-w-5 shrink-0 place-items-center rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[10px] text-zinc-300">
                 {item.key}
               </kbd>
               <span className="truncate text-zinc-400">{item.label}</span>
@@ -168,11 +168,11 @@ export function Sidebar({ scenario, actions }: SidebarProps) {
         </ul>
       </SidebarSection>
 
-      <div className="px-4 py-4">
+      <div className="px-3 py-3">
         <button
           type="button"
           onClick={actions.reset}
-          className="w-full rounded-md border border-zinc-700 px-2.5 py-1.5 text-sm text-zinc-300 hover:border-indigo-400/40 hover:text-indigo-200"
+          className="w-full rounded-md border border-zinc-700 px-2.5 py-1.5 text-[13px] text-zinc-300 transition-colors duration-150 hover:border-zinc-500 hover:bg-white/[0.03] hover:text-zinc-100 motion-reduce:transition-none"
         >
           Reset
         </button>
@@ -189,11 +189,11 @@ function SidebarSection({
   children: ReactNode
 }) {
   return (
-    <section className="border-b border-zinc-800 px-4 py-4">
-      <h2 className="font-mono text-[11px] font-medium tracking-[0.16em] text-zinc-400 uppercase">
+    <section className="border-b border-white/8 px-3 py-3">
+      <h2 className="text-[11px] font-medium tracking-[0.08em] text-zinc-400 uppercase">
         {title}
       </h2>
-      <div className="mt-3">{children}</div>
+      <div className="mt-2.5">{children}</div>
     </section>
   )
 }
@@ -237,7 +237,7 @@ function ChoiceGroup<T extends string>({
   }
 
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-col gap-1.5" onKeyDown={onKeyDown}>
+    <div role="radiogroup" aria-label={label} className="flex flex-col gap-1" onKeyDown={onKeyDown}>
       {options.map((option) => {
         const selected = option.id === value
         return (
@@ -250,10 +250,10 @@ function ChoiceGroup<T extends string>({
             tabIndex={selected ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(option.id)}
-            className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-[13px] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none ${
               selected
-                ? "border-indigo-400/70 bg-indigo-500/15 font-medium text-indigo-100"
-                : "border-zinc-800 bg-zinc-900 text-zinc-200 hover:border-zinc-700"
+                ? "border-white/15 bg-white/10 font-medium text-zinc-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+                : "border-transparent text-zinc-300 hover:border-white/10 hover:bg-white/[0.04]"
             }`}
           >
             <SelectionMark selected={selected} />
@@ -473,7 +473,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
 
   return (
     <div>
-      <label className="block text-xs text-zinc-400" htmlFor="scenario-name">
+      <label className="block text-[11px] font-medium tracking-wide text-zinc-400 uppercase" htmlFor="scenario-name">
         Scenario name
         <input
           id="scenario-name"
@@ -495,13 +495,13 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
               onSave()
             }
           }}
-          className="mt-1 w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 focus:border-indigo-400"
+          className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 focus:border-white/25 motion-reduce:transition-none"
         />
       </label>
       <button
         type="button"
         onClick={onSave}
-        className="mt-2 w-full rounded-md border border-indigo-400/70 bg-indigo-500/15 px-2.5 py-1.5 text-sm text-indigo-100 hover:bg-indigo-500/25"
+        className="mt-2 w-full rounded-md border border-indigo-400/40 bg-indigo-500/15 px-2.5 py-1.5 text-[13px] font-medium text-indigo-100 transition-colors duration-150 hover:border-indigo-300/60 hover:bg-indigo-500/25 motion-reduce:transition-none"
       >
         Save
       </button>
@@ -521,10 +521,10 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
           <button
             type="button"
             onClick={confirmPending}
-            className={`rounded-md border px-2 py-1 text-xs ${
+            className={`rounded-md border px-2 py-1 text-[12px] transition-colors duration-150 motion-reduce:transition-none ${
               visiblePending.kind === "delete"
-                ? "border-rose-400/50 bg-rose-500/10 text-rose-100"
-                : "border-indigo-400/70 bg-indigo-500/15 text-indigo-100"
+                ? "border-rose-400/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                : "border-indigo-400/40 bg-indigo-500/15 text-indigo-100 hover:bg-indigo-500/25"
             }`}
           >
             {visiblePending.kind === "delete" ? "Delete" : "Replace"}
@@ -532,14 +532,14 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
           <button
             type="button"
             onClick={cancelPending}
-            className="rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-zinc-500"
+            className="rounded-md border border-zinc-700 px-2 py-1 text-[12px] text-zinc-300 transition-colors duration-150 hover:border-zinc-500 hover:text-zinc-100 motion-reduce:transition-none"
           >
             Cancel
           </button>
         </div>
       ) : null}
       {entries.length === 0 && visibleFeedback?.tone !== "error" ? (
-        <p className="mt-3 rounded-md border border-dashed border-zinc-800 px-3 py-6 text-center text-sm text-zinc-400">
+        <p className="mt-3 rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-[13px] text-zinc-400">
           No saved scenarios
         </p>
       ) : null}
@@ -551,7 +551,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
               <li
                 key={entry.id}
                 data-saved-scenario={entry.id}
-                className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-2"
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors duration-150 hover:border-white/20 motion-reduce:transition-none"
               >
                 <p className="truncate text-sm text-zinc-100" title={entry.name}>
                   {entry.name}
@@ -564,7 +564,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
                     type="button"
                     aria-label={`Load ${entry.name}`}
                     onClick={() => onLoad(entry)}
-                    className="rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-200 hover:border-indigo-400/40 hover:text-indigo-200"
+                    className="rounded-md border border-zinc-700 px-2 py-1 text-[12px] text-zinc-200 transition-colors duration-150 hover:border-indigo-400/50 hover:text-indigo-100 motion-reduce:transition-none"
                   >
                     Load
                   </button>
@@ -572,7 +572,7 @@ function SavedScenarios({ scenario, actions }: SidebarProps) {
                     type="button"
                     aria-label={`Delete ${entry.name}`}
                     onClick={() => onDelete(entry)}
-                    className="rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:border-rose-400/50 hover:text-rose-200"
+                    className="rounded-md border border-zinc-700 px-2 py-1 text-[12px] text-zinc-300 transition-colors duration-150 hover:border-rose-400/50 hover:text-rose-200 motion-reduce:transition-none"
                   >
                     Delete
                   </button>
