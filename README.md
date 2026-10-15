@@ -20,6 +20,7 @@ The current version includes:
 - **Matrix.** All five states appear together at the selected width. Choosing a card applies that state and leaves the matrix. Compare and Matrix cannot be on at the same time.
 - **Saved scenarios.** Name the current setup and save it in this browser. You can load or delete saved scenarios, and replace one when the name already exists. Saves include the component, primary state, viewport, width, and compare settings. Matrix is not saved.
 - **Layout check.** **Check layout** measures the live preview: frame width, content scroll width, and horizontal overflow. Run it again after you change the preview. It is a measurement of the current screen, not a full visual test.
+- **Copy test report.** **Copy test report** copies the selected scenario name, viewport width, selected state, and current horizontal-overflow result as readable plain text.
 - **Keyboard access.** Controls have visible focus, names, and pressed or checked state. The closed sidebar on a narrow window is removed from the tab order. Layout results and save messages are exposed to assistive technology.
 - **Guarded input.** Empty names, duplicate names, widths outside 320–1440, unknown component or state values, and unreadable browser storage are rejected with a short message. The preview stays usable.
 
@@ -76,8 +77,9 @@ These keys work when focus is not in a text field, select, or content-editable e
 3. Press `5` to show the long-content list.
 4. Choose **Mobile**, or drag the width slider to `375px`.
 5. Click **Check layout**. The report names the frame and says whether that frame has horizontal overflow.
-6. Press `C` and set the second frame to **Empty** to compare a full list with an empty one.
-7. Type a scenario name and click **Save**. **Load** restores that setup later in this browser.
+6. Click **Copy test report**, then paste the readable scenario, viewport, state, and overflow summary into a bug report or note.
+7. Press `C` and set the second frame to **Empty** to compare a full list with an empty one.
+8. Type a scenario name and click **Save**. **Load** restores that setup later in this browser.
 
 Press `M` when you want every state on screen at once. Select a card to keep that state and return to a single preview.
 
@@ -87,6 +89,7 @@ Press `M` when you want every state on screen at once. Select a card to keep tha
 - Saved scenarios stay in `localStorage` for this browser. They are not synced, and they disappear if site data is cleared.
 - Matrix view is not stored with a saved scenario. Loading a scenario turns Matrix off.
 - **Check layout** reports horizontal overflow for the frames currently on screen. It does not compare screenshots or decide whether a design change is correct.
+- **Copy test report** uses the browser Clipboard API. If clipboard access is unavailable or denied, the report is not copied.
 - Long names, biographies, and product titles are sample defects. They are left unbroken so the preview can show the overflow.
 - Preview width is limited to 320–1440 pixels.
 - There is no screenshot export, visual regression suite, or hosted continuous-integration setup in this repository.

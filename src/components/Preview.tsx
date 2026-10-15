@@ -30,6 +30,14 @@ type LayoutFrameReport = {
   overflow: number
 }
 
+const stateLabels: Record<UIState, string> = {
+  success: "Success",
+  loading: "Loading",
+  empty: "Empty",
+  error: "Error",
+  long: "Long content",
+}
+
 function readLayoutReport(canvas: HTMLElement): LayoutFrameReport[] {
   return [...canvas.querySelectorAll<HTMLElement>("[data-preview-frame]")].map((frame) => {
     const content = frame.querySelector<HTMLElement>("[data-preview-content]") ?? frame
@@ -45,13 +53,58 @@ function readLayoutReport(canvas: HTMLElement): LayoutFrameReport[] {
   })
 }
 
+function formatTestReport(scenario: Scenario | null | undefined, frames: readonly LayoutFrameReport[]): string {
+  const name =
+    typeof scenario?.name === "string" && scenario.name.trim()
+      ? scenario.name.trim()
+      : "Unnamed scenario"
+  const width = Number.isFinite(scenario?.width) ? `${scenario?.width}px` : "Unavailable"
+  const state = scenario ? stateLabels[scenario.state] ?? "Unknown" : "Unknown"
+  const overflow = frames.length === 0
+    ? "Not detected"
+    : frames.some((frame) => frame.overflow > 0)
+      ? frames
+          .filter((frame) => frame.overflow > 0)
+          .map((frame) => `${frame.label}: ${frame.overflow}px`)
+          .join(", ")
+      : "None detected"
+
+  return [
+    "EdgeCase Studio test report",
+    `Scenario: ${name}`,
+    `Viewport width: ${width}`,
+    `Selected state: ${state}`,
+    `Horizontal overflow: ${overflow}`,
+  ].join("\n")
+}
+
 export function Preview({ scenario, actions }: PreviewProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [layoutReport, setLayoutReport] = useState<LayoutFrameReport[] | null>(null)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   function checkLayout() {
     const canvas = canvasRef.current
     setLayoutReport(canvas ? readLayoutReport(canvas) : [])
+  }
+
+  async function copyTestReport() {
+    const canvas = canvasRef.current
+    const frames = canvas ? readLayoutReport(canvas) : []
+    setLayoutReport(frames)
+    const report = formatTestReport(scenario, frames)
+
+    if (!navigator.clipboard) {
+      setCopyFeedback("Couldn't copy the test report in this browser.")
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(report)
+      setCopyFeedback("Test report copied.")
+    } catch {
+      setCopyFeedback("Couldn't copy the test report.")
+    }
   }
 
   return (
@@ -117,8 +170,20 @@ export function Preview({ scenario, actions }: PreviewProps) {
         >
           Check layout
         </button>
+        <button
+          type="button"
+          onClick={() => void copyTestReport()}
+          className="rounded-md border border-zinc-700 bg-black/30 px-2.5 py-1 text-[12px] text-zinc-300 transition-colors duration-150 hover:border-zinc-500 hover:text-zinc-100 motion-reduce:transition-none"
+        >
+          Copy test report
+        </button>
       </div>
       {layoutReport ? <LayoutReport frames={layoutReport} /> : null}
+      {copyFeedback ? (
+        <p role="status" aria-live="polite" className="border-t border-white/10 px-3 py-1.5 text-[11px] text-zinc-400">
+          {copyFeedback}
+        </p>
+      ) : null}
       </div>
 
       <div
